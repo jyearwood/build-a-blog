@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect,render_template, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import cgi
@@ -36,12 +36,40 @@ def newpost():
 
 @app.route("/blog", methods = ["POST", "GET"])
 def blog():
+    thisid = request.args.get("id")
+    if thisid:
+        blog = Blog.query.filter_by(id=thisid).first()
+        return render_template("blogpost.html", blog=blog)
+    else:
+        blogs = Blog.query.order_by(Blog.id.desc()).all()
+        return render_template("blog.html", blogs = blogs)
 
 
 @app.route("/validate", methods=["POST", "GET"])
 def validate():
+    blogtitle = request.form["blogtitle"]
+    blogtitle_error = ""
+    blogbody = request.form["blogbody"]
+    blogbody_error = ""
+
+    if blogtitle == "":
+        blogtitle_error = "Please enter a blog title"
+        return render_template("newpost.html", blogtitle=blogtitle, blogbody=blogbody, blogtitle_error = blogtitle_error, blogbody_error = blogbody_error)
+
+    if blogbody == "":
+        blogbody_error = "Please make an entry"
+        return render_template("newpost.html", blogtitle=blogtitle, blogbody=blogbody, blogtitle_error = blogtitle_error, blogbody_error = blogbody_error)
+
+    elif request.method == "POST":
+        newpost = Blog(blogtitle, blogbody)
+        db.session.add(newpost)
+        db.session.flush()
+        db.session.commit()
+
+    currentid = newpost.id
+    return redirect("/blog?id={0}".format(currentid))
 
 
 
 if __name__ == '__main__':
-app.run()
+    app.run()
